@@ -32,33 +32,6 @@
   with_items: "{{ config_flatpak_list }}"
   when: item.version is defined
 
-- name: make rtw89 module
-  shell: "{{ item }}"
-  args:
-    chdir: "{{ rtw89_repo_dir }}"
-  become: yes
-  changed_when: True
-  ignore_errors: yes
-  loop:
-    - "make clean"
-    - "make"
-    - "sudo make install"
-  notify:
-    - disable rtw89
-    - enable rtw89
-
-- name: disable rtw89
-  modprobe:
-    name: rtw89pci
-    state: absent
-  ignore_errors: yes
-
-- name: enable rtw89
-  modprobe:
-    name: rtw89pci
-    state: present
-  ignore_errors: yes
-
 - name: configure libdvd-pkg
   shell: dpkg-reconfigure libdvd-pkg -f noninteractive
   become: yes

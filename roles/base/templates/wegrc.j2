@@ -7,9 +7,6 @@ alias update_config="sudo git -C {{ config_repo_folder }} pull; sudo ansible-pla
 # run the kernel cleanup playbook to remove old kernels safely
 alias kernel_cleanup="sudo git -C {{ config_repo_folder }} pull; sudo ansible-playbook -i {{ config_repo_folder }}/inventory {{ config_repo_folder }}/main.yml -t kernel_cleanup"
 
-# run the main playbook to ensure updated packages and proper configs including latest rtw89_module
-alias wifi_update="sudo git -C {{ config_repo_folder }} pull; sudo ansible-playbook -i {{ config_repo_folder }}/inventory {{ config_repo_folder }}/main.yml -t setup -e ensure_rtw89_module=True"
-
 # run the main playbook + enhanced packages
 alias bigupdate="sudo git -C {{ config_repo_folder }} pull; sudo ansible-playbook -i {{ config_repo_folder }}/inventory {{ config_repo_folder }}/main.yml -t bigsetup -e config_extended_software=yes"
 
