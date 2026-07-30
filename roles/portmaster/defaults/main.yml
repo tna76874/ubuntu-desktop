@@ -18,6 +18,13 @@ portmaster_nameservers:
   - "dot://cloudflare-dns.com?ip=1.0.0.2&name=Cloudflare&blockedif=zeroip"
 
 portmaster_blocked_cc:
-  - CN
-  - RU
-  - IR
+  - CN # China (Häufiger Ursprung von Scans und Botnets)
+  - RU # Russland (Schwerpunkt für Ransomware und APT-Gruppen)
+  - IR # Iran (Aktive staatliche Cyber-Spionage)
+  - KP # Nordkorea (Finanz-Hacking und APTs)
+  - BY # Belarus (Geopolitisch eng mit RU verknüpft, oft ähnlich eingestuft)
+  - SY # Syrien (Sanktionierter Staat, hohes Risiko)
+  - VE # Venezuela (Sanktioniert, erhöhtes Cyberkriminalitätsrisiko)
+  - MM # Myanmar (Häufig Basis für Scam-Zentren und illegale Netzwerke)
+  - AF # Afghanistan (Hohes Aufkommen an ungesichertem/anomalem Datenverkehr)
+  - IQ # Irak (Regelmäßige Quelle für automatisierte Angriffe)
