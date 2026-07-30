@@ -8,6 +8,13 @@
         if ('portmaster' in ansible_facts.packages and ansible_facts.packages.portmaster | length > 0)
         else None)
       }}
+    portmaster_needs_update: >-
+      {{
+        (portmaster_major_version | int == 2) and
+        (portmaster_installed_version is not none) and
+        (portmaster_release_version is defined) and
+        (not portmaster_installed_version is match(portmaster_release_version))
+      }}
 
 #### DEBUG MESSAGES #############
 - name: Debug messages
@@ -16,9 +23,10 @@
       - "{{ 'Valid kernel for portmaster' if preflight_portmaster_kernel_valid else 'Invalid kernel for portmaster' }}"
       - "{{ 'Portmaster is installed' if preflight_portmaster_deb_is_installed else 'Portmaster is not installed' }}"
       - "Installation status: {{ portmaster_install_status }}"
-      - "Portmaster version: {{ portmaster_installed_version }}"
+      - "Installed Portmaster version: {{ portmaster_installed_version }}"
+      - "Latest GitHub Release version: {{ portmaster_release_version | default('N/A (v1 or not fetched)') }}"
+      - "Needs update / new install: {{ (preflight_portmaster_deb_is_installed == False or portmaster_needs_update | bool) }}"
   when: portmaster_debug|default(False)
-
 #################################
 
 - name: Ensure initial portmaster script
@@ -43,14 +51,20 @@
       apt:
         name: "*"
         state: present
-  when: preflight_portmaster_deb_is_installed == False and preflight_portmaster_kernel_valid == True and portmaster_install_status == True
+  when: >
+    preflight_portmaster_kernel_valid == True and
+    portmaster_install_status == True and
+    (preflight_portmaster_deb_is_installed == False or portmaster_needs_update | bool)
 
 - name: Aktiviere und starte den Portmaster-Dienst
   systemd:
     name: portmaster
     enabled: yes
     state: started
-  when: preflight_portmaster_deb_is_installed == False and preflight_portmaster_kernel_valid == True and portmaster_install_status == True
+  when: >
+    preflight_portmaster_kernel_valid == True and
+    portmaster_install_status == True and
+    (preflight_portmaster_deb_is_installed == False or portmaster_needs_update | bool)
 
 - name: Ensure portmaster settings
   block:
