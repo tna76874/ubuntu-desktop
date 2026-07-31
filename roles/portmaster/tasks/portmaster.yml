@@ -29,6 +29,72 @@
   when: portmaster_debug|default(False)
 #################################
 
+- name: Check and clean corrupted Portmaster intel files (SHA256 mismatch handler)
+  block:
+    - name: Verify file hashes and remove index.json on mismatch
+      shell: |
+        python3 - << 'PYTHON_EOF'
+        import json, hashlib, os
+
+        index_path = "/var/lib/portmaster/intel/index.json"
+        base_dir = "/var/lib/portmaster/intel"
+
+        mismatch_found = False
+
+        if os.path.exists(index_path):
+            with open(index_path, "r") as f:
+                try:
+                    data = json.load(f)
+                except Exception as e:
+                    print(f"MISMATCH: Failed to parse index.json ({e}). Deleting index.json...")
+                    os.remove(index_path)
+                    exit(0)
+
+            for artifact in data.get("Artifacts", []):
+                filename = artifact.get("Filename")
+                expected_sha = artifact.get("SHA256")
+                if not filename or not expected_sha:
+                    continue
+                
+                filepath = os.path.join(base_dir, filename)
+
+                if os.path.exists(filepath):
+                    hasher = hashlib.sha256()
+                    with open(filepath, "rb") as file_obj:
+                        while chunk := file_obj.read(8192):
+                            hasher.update(chunk)
+                    actual_sha = hasher.hexdigest()
+
+                    if actual_sha != expected_sha:
+                        print(f"MISMATCH: Hash mismatch for {filename}. Deleting index.json...")
+                        mismatch_found = True
+                        break
+                else:
+                    # Wenn eine Datei komplett fehlt, triggert das oft auch ein Neuladen
+                    print(f"MISSING: {filename}. Deleting index.json...")
+                    mismatch_found = True
+                    break
+
+            if mismatch_found:
+                os.path.exists(index_path) and os.remove(index_path)
+        PYTHON_EOF
+      args:
+        executable: /bin/bash
+      register: intel_cleanup_result
+      changed_when: "'MISMATCH:' in intel_cleanup_result.stdout or 'MISSING:' in intel_cleanup_result.stdout"
+
+    - name: Debug intel cleanup output
+      debug:
+        msg: "{{ intel_cleanup_result.stdout_lines }}"
+      when: 
+        - portmaster_debug | default(False)
+        - intel_cleanup_result is defined
+
+  when: 
+    - preflight_portmaster_kernel_valid == True
+    - portmaster_install_status == True
+    - ansible_facts.packages['portmaster'] is defined
+
 - name: Ensure initial portmaster script
   block:
     - apt:
@@ -38,7 +104,10 @@
 
     - name: Install missing dependencies
       apt:
-        name: "*"
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
         state: present
       when: install_result.failed
 
@@ -49,7 +118,10 @@
   rescue:
     - name: Install missing dependencies
       apt:
-        name: "*"
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
         state: present
   when: >
     preflight_portmaster_kernel_valid == True and
