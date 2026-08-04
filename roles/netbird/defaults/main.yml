@@ -1,0 +1,5 @@
+---
+netbird_state: "installed" # "installed" oder "absent"
+netbird_service_state: "stopped" # "started" oder "stopped"
+netbird_service_enabled: false # Standardmäßig nicht beim Systemstart starten
+netbird_install_gui: true # Steuert, ob das GUI mitinstalliert werden soll

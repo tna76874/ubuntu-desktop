@@ -1,0 +1,54 @@
+---
+- name: Überprüfe das Betriebssystem und die Ubuntu-Version
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Lese /etc/os-release aus
+      ansible.builtin.slurp:
+        src: /etc/os-release
+      register: os_release_file
+
+    - name: Setze Versions-Fakten
+      ansible.builtin.set_fact:
+        ubuntu_version_id: "{{ (os_release_file['content'] | b64decode | regex_search('VERSION_ID=\"([0-9.]+)\"', '\\1')) | default(['0']) | first }}"
+
+    - name: Breche ab, wenn Ubuntu älter als Version 24 ist
+      ansible.builtin.fail:
+        msg: "Diese Rolle erfordert mindestens Ubuntu 24.04. Gefunden wurde Version: {{ ubuntu_version_id }}"
+      when: ubuntu_version_id is version('24.04', '<')
+
+- name: Prüfe, ob Netbird bereits auf dem System installiert ist
+  ansible.builtin.command: which netbird
+  register: netbird_installed_check
+  failed_when: false
+  changed_when: false
+
+- name: Netbird Installation oder Deinstallation durchführen
+  block:
+    - name: Netbird installieren (falls gewünscht und nicht vorhanden)
+      when: 
+        - netbird_state == "installed"
+        - netbird_installed_check.rc != 0
+      block:
+        - name: Netbird Installationsskript (CLI) herunterladen und ausführen
+          ansible.builtin.shell: curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          args:
+            executable: /bin/bash
+
+        - name: Netbird GUI und Abhängigkeiten installieren
+          when: netbird_install_gui | bool
+          ansible.builtin.apt:
+            name:
+              - netbird-ui
+              - libgtk-4-1
+              - libwebkitgtk-6.0-4
+              - xdg-utils
+            state: present
+            update_cache: true
+
+- name: Netbird Daemon Status verwalten (nur wenn installiert)
+  when: netbird_state == "installed"
+  ansible.builtin.systemd:
+    name: netbird
+    state: "{{ netbird_service_state }}"
+    enabled: "{{ netbird_service_enabled }}"
+  notify: Netbird Daemon neu laden

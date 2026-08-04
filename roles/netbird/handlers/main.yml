@@ -1,0 +1,5 @@
+---
+- name: Netbird Daemon neu laden
+  ansible.builtin.systemd:
+    name: netbird
+    daemon_reload: true

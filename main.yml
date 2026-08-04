@@ -181,6 +181,21 @@
         - debug:
             msg: "Portmaster installation failed, but continuing..."
 
+- name: Deploy netbird
+  hosts: localhost
+  become: yes
+  tags:
+    - never
+    - netbird
+  tasks:
+    - block:
+        - name: Include netbird role
+          include_role:
+            name: netbird
+      rescue:
+        - debug:
+            msg: "netbird installation failed, but continuing..."
+
 - name: Set SWAP
   hosts: localhost
   become: yes
