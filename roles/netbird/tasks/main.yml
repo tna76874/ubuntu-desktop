@@ -34,7 +34,7 @@
           args:
             executable: /bin/bash
 
-        - name: Netbird GUI und Abhängigkeiten installieren
+        - name: Netbird GUI und GTK4/WebKit-Abhängigkeiten installieren (NetBird v0.75+)
           when: netbird_install_gui | bool
           ansible.builtin.apt:
             name:
